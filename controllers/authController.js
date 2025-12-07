@@ -34,7 +34,7 @@ exports.sendOTP = async (req, res) => {
 
 exports.verifyOTP = async (req, res) => {
   try {
-    const { phone, otp } = req.body;
+    const { phone, otp, name, email, role } = req.body;
 
     if (!phone || !otp) {
       return res.status(400).json({
@@ -43,28 +43,47 @@ exports.verifyOTP = async (req, res) => {
       });
     }
 
-    // ✅ TEST MODE: Accept ANY 6-digit OTP for testing
-    if (otp.length !== 6 || !/^\d{6}$/.test(otp)) {
+    const user = await User.findOne({ phone });
+
+    if (!user) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid 6-digit OTP',
+        message: 'User not found. Please send OTP first.',
       });
     }
 
-    // Generate fake token for testing
-    const fakeToken = 'test-jwt-token-' + Math.random().toString(36).substr(2, 9);
-    
+    const otpVerification = verifyOTP(user.otp.code, otp, user.otp.expiresAt);
+
+    if (!otpVerification.success) {
+      return res.status(400).json({
+        success: false,
+        message: otpVerification.message,
+      });
+    }
+
+    // ✅ Update user details if provided
+    if (name) user.name = name;
+    if (email) user.email = email;
+    if (role) user.role = role;
+
+    // ✅ Clear OTP after verification
+    user.otp = { code: null, expiresAt: null };
+    await user.save();
+
+    // ✅ GENERATE REAL JWT TOKEN (NOT fake)
+    const token = generateToken(user._id, user.role);
+
     res.json({
       success: true,
-      message: 'Login successful!',
-      token: fakeToken,
+      message: 'OTP verified successfully',
+      token,  // ✅ Real JWT: eyJhbGciOiJIUzI1NiIs...
       user: {
-        _id: 'test-user-id',
-        phone,
-        name: 'Test User',
-        email: 'test@example.com',
-        role: 'user'
-      }
+        _id: user._id,
+        phone: user.phone,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
     });
   } catch (error) {
     res.status(500).json({
