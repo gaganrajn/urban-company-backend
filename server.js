@@ -56,12 +56,20 @@ app.get('/api/health', (req, res) => {
 });
 
 // Error handling middleware
+// Error handling middleware - FIXED
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  // Only handle if response not already sent
+  if (res.headersSent) {
+    return next(err);
+  }
+  
+  console.error('Global error handler:', err.stack);
   res.status(err.status || 500).json({
-    error: err.message || 'Internal server error',
+    success: false,
+    message: err.message || 'Internal server error',
   });
 });
+
 
 // Start server
 const PORT = process.env.PORT || 5000;
