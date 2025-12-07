@@ -1,11 +1,10 @@
 const jwt = require('jsonwebtoken');
-require('dotenv').config();
 
-const generateToken = (userId, role) => {
+const generateToken = (userId, role = 'user') => {
   return jwt.sign(
     { userId, role },
     process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRE }
+    { expiresIn: '7d' }
   );
 };
 
@@ -13,16 +12,8 @@ const verifyToken = (token) => {
   try {
     return jwt.verify(token, process.env.JWT_SECRET);
   } catch (error) {
-    return null;
+    throw new Error('Invalid or expired token');
   }
 };
 
-const decodeToken = (token) => {
-  return jwt.decode(token);
-};
-
-module.exports = {
-  generateToken,
-  verifyToken,
-  decodeToken,
-};
+module.exports = { generateToken, verifyToken };

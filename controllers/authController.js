@@ -96,26 +96,44 @@ exports.login = async (req, res) => {
   }
 };
 
+const { verifyToken } = require('../utils/jwt');
+
 exports.getCurrentUser = async (req, res) => {
   try {
-    const user = await User.findById(req.user.userId).select('-password -otp');
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: 'No token provided'
+      });
+    }
+
+    const decoded = verifyToken(token);
+    const user = await User.findById(decoded.userId).select('-otp');
 
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User not found',
+        message: 'User not found'
       });
     }
 
     res.json({
       success: true,
-      user,
+      user: {
+        _id: user._id,
+        phone: user.phone,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar
+      }
     });
   } catch (error) {
-    res.status(500).json({
+    res.status(401).json({
       success: false,
-      message: 'Error fetching user',
-      error: error.message,
+      message: error.message || 'Invalid or expired token'
     });
   }
 };
