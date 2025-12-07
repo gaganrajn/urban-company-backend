@@ -1,10 +1,4 @@
-const twilio = require('twilio');
 require('dotenv').config();
-
-const client = twilio(
-  process.env.TWILIO_ACCOUNT_SID,
-  process.env.TWILIO_AUTH_TOKEN
-);
 
 const generateOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -13,22 +7,40 @@ const generateOTP = () => {
 const sendOTPViaSMS = async (phoneNumber) => {
   try {
     const otp = generateOTP();
-    
-    const message = await client.messages.create({
-      body: `Your Urban Company OTP is: ${otp}. Valid for 10 minutes.`,
-      from: process.env.TWILIO_PHONE_NUMBER,
-      to: `+91${phoneNumber}`,
+    const message = `Your Urban Company OTP is ${otp}. Valid for 10 minutes.`;
+
+    const response = await fetch('https://www.fast2sms.com/dev/bulkV2', {
+      method: 'POST',
+      headers: {
+        'authorization': process.env.FAST2SMS_API_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        sender_id: process.env.FAST2SMS_SENDER_ID || "FSTSMS",
+        message: message,
+        route: "q",  // Quick route (Transactional)
+        numbers: phoneNumber  // 10-digit Indian number
+      })
     });
 
-    console.log(`✅ OTP sent successfully. SID: ${message.sid}`);
+    const data = await response.json();
     
-    return {
-      success: true,
-      otp,
-      expiresAt: new Date(Date.now() + 10 * 60 * 1000),
-    };
+    console.log(`Fast2SMS Response:`, data);
+    
+    if (data.return === true) {
+      return {
+        success: true,
+        otp,
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+      };
+    } else {
+      return {
+        success: false,
+        error: data.message || 'Fast2SMS API failed',
+      };
+    }
   } catch (error) {
-    console.error('❌ Error sending OTP:', error.message);
+    console.error('❌ Fast2SMS Error:', error.message);
     return {
       success: false,
       error: error.message,
