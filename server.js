@@ -12,8 +12,16 @@ const bookingRoutes = require('./routes/bookings');
 // Initialize app
 const app = express();
 
+// CORS config
+const allowedOrigins = [
+  'https://urban-company-frontend.vercel.app',
+  'http://localhost:5500',
+  'http://localhost:3000'
+];
+
 const corsOptions = {
   origin: function (origin, callback) {
+    // allow Postman / curl with no origin
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -29,25 +37,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 
-
-// Middleware
-const allowedOrigins = [
-  'https://urban-company-frontend.vercel.app',
-  'http://localhost:5500',
-  'http://localhost:3000'
-];
-
-app.use(cors({
-  origin: function(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('CORS not allowed'));
-    }
-  },
-  credentials: true
-}));
-
+// Body parsers
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
