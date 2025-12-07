@@ -14,30 +14,19 @@ exports.sendOTP = async (req, res) => {
     }
 
     const user = await User.findOne({ phone });
-    const otpResult = await sendOTPViaSMS(phone);
-
-    if (!otpResult.success) {
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to send OTP',
-        error: otpResult.error,
-      });
-    }
+    
+    // ✅ Generate test OTP (no Twilio/SMS)
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     if (user) {
-      user.otp = {
-        code: otpResult.otp,
-        expiresAt: otpResult.expiresAt,
-      };
+      user.otp = { code: otp, expiresAt };
       await user.save();
     } else {
       await User.create({
         phone,
         name: 'New User',
-        otp: {
-          code: otpResult.otp,
-          expiresAt: otpResult.expiresAt,
-        },
+        otp: { code: otp, expiresAt },
       });
     }
 
@@ -45,9 +34,10 @@ exports.sendOTP = async (req, res) => {
       success: true,
       message: 'OTP sent successfully',
       phone,
-      testOTP: process.env.NODE_ENV === 'development' ? otpResult.otp : undefined,
+      testOTP: otp, // ✅ Shows in Network tab for testing
     });
   } catch (error) {
+    console.error('sendOTP error:', error);
     res.status(500).json({
       success: false,
       message: 'Error sending OTP',
