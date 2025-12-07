@@ -56,18 +56,18 @@ app.get('/api/health', (req, res) => {
 });
 
 // Error handling middleware
-app.use((err, req, res, next) => {
-  // Only handle if response not already sent
-  if (res.headersSent) {
-    return next(err);
-  }
+// app.use((err, req, res, next) => {
+//   // Only handle if response not already sent
+//   if (res.headersSent) {
+//     return next(err);
+//   }
   
-  console.error('Global error handler:', err.stack);
-  res.status(err.status || 500).json({
-    success: false,
-    message: err.message || 'Internal server error',
-  });
-});
+//   console.error('Global error handler:', err.stack);
+//   res.status(err.status || 500).json({
+//     success: false,
+//     message: err.message || 'Internal server error',
+//   });
+// });
 
 
 // Start server

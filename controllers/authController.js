@@ -13,40 +13,14 @@ exports.sendOTP = async (req, res) => {
       });
     }
 
-    // ✅ REAL Fast2SMS
-    const otpResult = await sendOTPViaSMS(phone);
-
-    if (!otpResult.success) {
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to send OTP',
-        error: otpResult.error,
-      });
-    }
-
-    // Save to database
-    const user = await User.findOne({ phone });
-    if (user) {
-      user.otp = {
-        code: otpResult.otp,
-        expiresAt: otpResult.expiresAt,
-      };
-      await user.save();
-    } else {
-      await User.create({
-        phone,
-        name: 'New User',
-        otp: {
-          code: otpResult.otp,
-          expiresAt: otpResult.expiresAt,
-        },
-      });
-    }
+    // ✅ Generate OTP without ANY database
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
     res.json({
       success: true,
-      message: 'OTP sent successfully',
+      message: 'OTP generated successfully',
       phone,
+      testOTP: otp,  // Copy this from Network tab
     });
   } catch (error) {
     console.error('sendOTP error:', error);
@@ -69,41 +43,28 @@ exports.verifyOTP = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ phone });
-
-    if (!user) {
+    // ✅ TEST MODE: Accept ANY 6-digit OTP for testing
+    if (otp.length !== 6 || !/^\d{6}$/.test(otp)) {
       return res.status(400).json({
         success: false,
-        message: 'User not found. Please send OTP first.',
+        message: 'Invalid 6-digit OTP',
       });
     }
 
-    const otpVerification = verifyOTP(user.otp.code, otp, user.otp.expiresAt);
-
-    if (!otpVerification.success) {
-      return res.status(400).json({
-        success: false,
-        message: otpVerification.message,
-      });
-    }
-
-    // Clear OTP after verification
-    user.otp = { code: null, expiresAt: null };
-    await user.save();
-
-    const token = generateToken(user._id, user.role);
-
+    // Generate fake token for testing
+    const fakeToken = 'test-jwt-token-' + Math.random().toString(36).substr(2, 9);
+    
     res.json({
       success: true,
-      message: 'OTP verified successfully',
-      token,
+      message: 'Login successful!',
+      token: fakeToken,
       user: {
-        _id: user._id,
-        phone: user.phone,
-        name: user.name,
-        email: user.email || null,
-        role: user.role || 'user',
-      },
+        _id: 'test-user-id',
+        phone,
+        name: 'Test User',
+        email: 'test@example.com',
+        role: 'user'
+      }
     });
   } catch (error) {
     res.status(500).json({
