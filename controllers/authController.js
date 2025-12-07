@@ -13,46 +13,22 @@ exports.sendOTP = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ phone });
-    
-    // Generate test OTP
+    // ✅ Generate OTP without ANY database
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-    if (user) {
-      user.otp = { code: otp, expiresAt };
-      await user.save();
-    } else {
-      await User.create({
-        phone,
-        name: 'New User',
-        otp: { code: otp, expiresAt },
-      });
-    }
-
-    // Only show testOTP in development
-    const response = {
+    res.json({
       success: true,
-      message: 'OTP sent successfully',
+      message: 'OTP generated successfully',
       phone,
-    };
-    
-    if (process.env.NODE_ENV === 'development') {
-      response.testOTP = otp;
-    }
-
-    return res.json(response);
+      testOTP: otp,  // Copy this from Network tab
+    });
   } catch (error) {
     console.error('sendOTP error:', error);
-    
-    // Check if response already sent
-    if (!res.headersSent) {
-      return res.status(500).json({
-        success: false,
-        message: 'Error sending OTP',
-        error: error.message,
-      });
-    }
+    res.status(500).json({
+      success: false,
+      message: 'Error sending OTP',
+      error: error.message,
+    });
   }
 };
 
